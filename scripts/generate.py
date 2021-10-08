@@ -13,17 +13,16 @@ from multiprocessing import Pool
 import time
 import tqdm
 
-IMAGE_HEIGHT = 448
+IMAGE_HEIGHT = 480
 IMAGE_WIDTH = 798
-BOARDS_DIR = '../../data_old/boards/**/*.jpg'
-DARTS_DIR = "../../data_old/darts/foo/2/*.png"
-# '../data/sequential-4/train'
-# '/mnt/c/Users/kevin/deep-learning/train'
-OUTPUT_DIR = '/home/kevin/deep-learning/data/train/generated7'
+BOARDS_DIR0 = '/home/kevin/Projekte/DartNet/models/base_data_rotated/*/0/*.jpg'
+BOARDS_DIR1 = '/home/kevin/Projekte/DartNet/models/base_data_rotated/*/1/*.jpg'
+DARTS_DIR = "/home/kevin/Projekte/DartNet/models/base_data/darts/foo/2/*.png"
+
+OUTPUT_DIR = '/home/kevin/Projekte/DartNet/models/data_rotated/train/generated'
 SAMPLE_COUNT = 1
 
-# load the image, clone it, and setup the mouse callback function
-ref = cv2.imread('../../data_old/ref3.jpg')
+ref = cv2.imread('/home/kevin/Projekte/DartNet/models/base_data/ref3.jpg')
 
 try:
     os.makedirs(OUTPUT_DIR)
@@ -68,6 +67,26 @@ def rotate_around(point, degrees, origin=(0, 0)):
     qy = oy + -math.sin(radians) * (x - ox) + math.cos(radians) * (y - oy)
 
     return (int(qx), int(qy))
+
+def read_affine_transform(file):
+    folder = os.path.dirname(file)
+    filename, extension = os.path.splitext(os.path.basename(file))
+    try:
+        return np.loadtxt(f'{folder}/M-{filename}.txt')
+    except:
+        suffix = filename.split('-')[-1]
+        return np.loadtxt(f'{folder}/M-{suffix}.txt')
+
+def square(image):
+    width, height, channels = image.shape
+    size = np.min((width, height))
+    return image[(width - size) // 2:(width - size) // 2 + size, (height - size) // 2:(height - size) // 2 + size, :]
+
+def transform(image, M):
+    image = cv2.warpAffine(image, M, image.shape[1::-1], flags=cv2.INTER_CUBIC)
+    image = square(image)
+    image = cv2.resize(image, (IMAGE_HEIGHT, IMAGE_HEIGHT), interpolation=cv2.INTER_CUBIC)
+    return image
 
 
 dartImages = [Image.open(file).rotate(-90) for file in glob(DARTS_DIR)]
@@ -124,9 +143,11 @@ def rasterize(count):
 
 
 def assignDartsAndBoards(files, example):
-    boardIndex0 = random.randint(0, len(files) - 1)
-    boardIndex1 = random.randint(0, len(files) - 1)
-    while abs(files[boardIndex0][2] - files[boardIndex1][2]) < 15:
+    boardIndex0 = random.randint(0, len(files) / 2 - 1)
+    boardIndex1 = random.randint(len(files) / 2, len(files) - 1)
+    #while abs(files[boardIndex0][2] - files[boardIndex1][2]) < 15:
+    #    boardIndex1 = random.randint(0, len(files) - 1)
+    while boardIndex0 == boardIndex1:
         boardIndex1 = random.randint(0, len(files) - 1)
     result0 = []
     result1 = []
@@ -161,10 +182,11 @@ def loadFile(file):
     img = Image.open(file)
     trans = loadTransform(file)
     rot = calc_rotation(trans)
-    return (img, trans, rot)
+    affine_transform = read_affine_transform(file)
+    return (img, trans, rot, affine_transform)
 
-def loadFiles(imagePath):
-    return [loadFile(file) for file in glob(imagePath, recursive=True)]
+def loadFiles(imagePath0, imagePath1):
+    return [loadFile(file) for file in glob(imagePath0, recursive=True)] + [loadFile(file) for file in glob(imagePath1, recursive=True)]
 
 
 cnt = Counter()
@@ -177,10 +199,10 @@ def prepare(sample):
     positions = [s and (s[10], s[11]) for s in darts0]
     #scores.sort(key=lambda x: f"{x[0]}-{x[1]}" if x is not None else "empty")
     scoreLabel = '#'.join(
-        [f"{score[0]}-{score[1]}" if score is not None else "empty" for score in scores]
+        [f"{score[0]}-{score[1]}" if score is not None else "0-0" for score in scores]
     )
     positionLabel = '#'.join(
-        [f"{pos[0]}#{pos[1]}" if pos is not None else "empty" for pos in positions]
+        [f"{pos[0]}#{pos[1]}" if pos is not None else "0-0" for pos in positions]
     )
     label = f"{scoreLabel}${positionLabel}"
     cnt[label] += 1
@@ -200,26 +222,27 @@ def drawDarts(file, rotation, darts):
                                   int(y) - dartOffsetY), dartImage)
     return current
 
-def saveImage(c, counter, darts0, darts1, outputFolder):
+def saveImage(c, counter, darts0, darts1, transform0, transform1, outputFolder):
     filename = f"{outputFolder}/{c}_{counter}-2.jpg"
-    d0 = darts0.resize((darts0.width * IMAGE_HEIGHT // darts0.height,
-                        IMAGE_HEIGHT), Image.ANTIALIAS)
-    d1 = darts1.resize((darts1.width * IMAGE_HEIGHT // darts1.height,
-                        IMAGE_HEIGHT), Image.ANTIALIAS)
-    result = Image.new('RGB', (IMAGE_WIDTH * 2, IMAGE_HEIGHT), (0, 0, 0, 0))
-    if random.choice([True, False]):
-        result.paste(d0, ((IMAGE_WIDTH - d0.width) // 2, 0))
-        result.paste(d1, (IMAGE_WIDTH + (IMAGE_WIDTH - d1.width) // 2, 0))
-    else:
-        result.paste(d0, (IMAGE_WIDTH + (IMAGE_WIDTH - d0.width) // 2, 0))
-        result.paste(d1, ((IMAGE_WIDTH - d1.width) // 2, 0))
-    result.save(filename)
+    #d0 = darts0.resize((darts0.width * IMAGE_HEIGHT // darts0.height,
+    #                    IMAGE_HEIGHT), Image.ANTIALIAS)
+    #d1 = darts1.resize((darts1.width * IMAGE_HEIGHT // darts1.height,
+    #                    IMAGE_HEIGHT), Image.ANTIALIAS)
+    images = [
+        transform(cv2.cvtColor(np.array(darts0), cv2.COLOR_RGB2BGR), transform0),
+        transform(cv2.cvtColor(np.array(darts1), cv2.COLOR_RGB2BGR), transform1)
+    ]
 
+    #print(transform0)
+    
+    random.shuffle(images)
+    image = cv2.hconcat(images)
+    cv2.imwrite(filename, image)
 
 def init():
     global files, dartImages
     dartImages = [Image.open(file).rotate(-90) for file in glob(DARTS_DIR, recursive=True)]
-    files = loadFiles(BOARDS_DIR)
+    files = loadFiles(BOARDS_DIR0, BOARDS_DIR1)
 
 bar = None
 
@@ -253,16 +276,20 @@ def handleSample(sample):
     board1 = item[1]
     d0 = drawDarts(files[board0][0], files[board0][2], item[2])
     d1 = drawDarts(files[board1][0], files[board1][2], item[3])
-    saveImage(item[4], item[5], d0, d1, OUTPUT_DIR)
+    
+    saveImage(item[4], item[5], d0, d1, files[board0][3], files[board1][3], OUTPUT_DIR)
     #print(f"saving {i}/{sampleSize}")
 
 if __name__ == "__main__":
     t = time.process_time()
-    files = loadFiles(BOARDS_DIR)
+    files = loadFiles(BOARDS_DIR0, BOARDS_DIR1)
     print(len(files))
     samples = rasterize(SAMPLE_COUNT)
     sampleSize = len(samples)
+    print(sampleSize)
     pool = Pool(16, initializer=init)
+    #for x in samples:
+    #    handleSample(x)
     for x in tqdm.tqdm(pool.imap_unordered(handleSample, samples, 100), total=sampleSize):
         pass
     elapsed_time = time.process_time() - t

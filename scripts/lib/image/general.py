@@ -17,8 +17,8 @@ def show (img, height = 1000, width = 1900, name='image', debug=True, clickHandl
     def handler (event, x, y, flags, param):
       clickHandler(event, x , y,  flags, param)
     cv2.setMouseCallback(name, handler)
- 
-  cv2.imshow(name, img)
+  
+  cv2.imshow(name, cv2.resize(img, (w, h), interpolation=cv2.INTER_CUBIC))
   if debug:
     cv2.imwrite('./debug/{0}.jpg'.format(name), img)
     cv2.waitKey(0)

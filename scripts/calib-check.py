@@ -16,11 +16,11 @@ parser.add_argument('imagePath', type=str,
 args = parser.parse_args()
 files = glob(args.imagePath)
 
-ref = cv2.imread('../../data/ref3.jpg')
-overlay = cv2.imread('../overlay3.png')
+ref = cv2.imread('/home/kevin/deep-learning/data_old/ref3.jpg')
+#overlay = cv2.imread('../overlay3.png')
 
 
-print(ref.shape, overlay.shape)
+#print(ref.shape, overlay.shape)
 for file in files:
   imageFullName = os.path.basename(file)
   dirname = os.path.dirname(file)
@@ -28,7 +28,7 @@ for file in files:
   img = cv2.imread(file)
   M = np.loadtxt(f"{dirname}/{filename}.txt")
   dst = transformImage(img,M, ref.shape)
-  overlayed = cv2.addWeighted(dst,0.7,overlay,0.5,0)
-  show(overlayed, name='dst', debug=False)
+  #overlayed = cv2.addWeighted(dst,0.7,overlay,0.5,0)
+  show(dst, name='dst', debug=False)
   if cv2.waitKey(0) == 113: break
 cv2.destroyAllWindows()

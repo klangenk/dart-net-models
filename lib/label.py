@@ -1,7 +1,10 @@
 import re
 import torch
+import random
 
 pat = re.compile('.*/([^_]+)_.+.jpg$')
+
+categories_simple = ['1','10','11','12','13','14','15','16','17','18','19','2','20','3','4','5','6','7','8','9','x1','x2','x3','25-1','25-2','0','empty']
 
 def _label_pos(s):
     if s is None: return torch.tensor([-1., -1, -1, -1, -1, -1])
@@ -26,12 +29,33 @@ def _label_fields(c):
     l = [_label_field(i, x) for i, x in enumerate(c)]
     return [item for sublist in l for item in sublist]
 
+
+
 def label_field(fname):
     match = pat.match(str(fname.as_posix()))
     if match is None:
         return None
     c = match[1].split('$')[0]
     return _label_fields(c)
+
+def random_labels():
+    labels = []
+    for i in range(0,3):
+        ring = random.randint(20, 26)
+        if ring > 22:
+            labels.append(f'{i}-z{categories_simple[ring]}')
+        else:
+            slice = random.randint(0, 19)
+            labels.append(f'{i}-{categories_simple[slice]}')
+            labels.append(f'{i}-{categories_simple[ring]}')
+    return labels
+
+def label_field_random_empty(fname):
+    labels = label_field(fname)
+    if labels[0] == '0-zempty':
+        return random_labels()
+    return labels
+
 
 def label_field_and_pos(fname):
     match = pat.match(str(fname.as_posix()))

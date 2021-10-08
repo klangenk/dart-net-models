@@ -1,5 +1,6 @@
 __pycache__/
-data/
+/data*
+/base_data*
 notebooks/models/
-
 .ipynb_checkpoints/
+base_data/

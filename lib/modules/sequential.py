@@ -22,7 +22,7 @@ class MultiDartPlus(torch.nn.Module):
             if p != 0:
                 layers.append(torch.nn.Dropout(p))
             if len(layers) == 4:
-                ni = ni + n_out - 1
+                ni = ni + n_out - 2
             layers.append(torch.nn.Linear(ni, no))
             if actn is not None:
                 layers.append(actn)
@@ -35,7 +35,8 @@ class MultiDartPlus(torch.nn.Module):
         batchSize, channels, height, width = x[0].shape
         baseOut = self.encoder(torch.cat(x, 0))
         preHeadOut = baseOut.view(imageCount, batchSize, -1).sum(0)
-        darts = darts.view(batchSize, 3, -1)[:,:,:26]
+        darts = darts.view(batchSize, 3, -1)[:,:,:25]
+        
         merged = torch.cat([torch.stack((
             torch.cat((preHeadOut[i], d[1] + d[2]), 0),
             torch.cat((preHeadOut[i], d[0] + d[2]), 0),

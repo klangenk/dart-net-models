@@ -13,27 +13,35 @@ import math
 import csv
 from shutil import copyfile
 
+HEIGHT = 480
+
 parser = argparse.ArgumentParser(description='Find Darts')
 parser.add_argument('imagePath', type=str,
                   help='path to images')
 
 args = parser.parse_args()
 
-def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+def resize(img, size):
+  width, height, channels = img.shape
+  if width == size[0] and height == size[1]:
+    return img
+  return cv2.resize(img, size, interpolation=cv2.INTER_CUBIC)
+
+def vconcat_resize_min(im_list):
     w_min = min(im.shape[1] for im in im_list)
-    im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
+    im_list_resize = [resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])))
                       for im in im_list]
     return cv2.vconcat(im_list_resize)
 
-def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+def hconcat_resize_min(im_list):
     h_min = min(im.shape[0] for im in im_list)
-    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+    im_list_resize = [resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min))
                       for im in im_list]
     return cv2.hconcat(im_list_resize)
 
-def concat_tile_resize(im_list_2d, interpolation=cv2.INTER_CUBIC):
-    im_list_v = [hconcat_resize_min(im_list_h, interpolation=interpolation) for im_list_h in im_list_2d]
-    return vconcat_resize_min(im_list_v, interpolation=interpolation)
+def concat_tile_resize(im_list_2d):
+    im_list_v = [hconcat_resize_min(im_list_h) for im_list_h in im_list_2d]
+    return vconcat_resize_min(im_list_v)
 
 def drawText(img, text, index):
   font = cv2.FONT_HERSHEY_SIMPLEX
@@ -46,6 +54,22 @@ def drawText(img, text, index):
   return cv2.putText(img, text, pos, font, 
                     fontScale, color, thickness, cv2.LINE_AA)
 
+def square(image):
+  width, height, channels = image.shape
+  size = np.min((width, height))
+  return image[(width - size) // 2:(width - size) // 2 + size, (height - size) // 2:(height - size) // 2 + size, :]
+
+def getSuffix(file):
+  suffix = os.path.splitext(os.path.basename(file))[0].split('-')[1]
+  return suffix
+
+def readImage(file, transforms):
+  suffix = getSuffix(file)
+  img = cv2.imread(file)
+  img = cv2.warpAffine(img, transforms[suffix], img.shape[1::-1], flags=cv2.INTER_CUBIC)
+  img = square(img)
+  return resize(img, (HEIGHT, HEIGHT))
+
 SPACE = 32
 D = 100
 ENTER = 13
@@ -56,6 +80,8 @@ folders = sorted([f for f in glob(f'{args.imagePath}/*') if os.path.isdir(f)
   and len(glob(f'{f}/*')) > 5
 ])
 
+
+
 for folder in folders:
   with open(f'{folder}/darts.csv', newline='') as inFile:
     spamreader = csv.reader(inFile, delimiter=',', quotechar='"')
@@ -65,23 +91,26 @@ for folder in folders:
       partOf = False
       last = []
       lastCorrect = []
+      transforms = {}
+      for file in glob(f'{folder}/M-*.txt'):
+        suffix = getSuffix(file)
+        transforms[suffix] = np.loadtxt(file)
       for row in spamreader:
           [id, *darts] = row
           if id == 'id': 
             spamwriter.writerow(row)
             continue
+          print(folder, id)
           partOf = darts[:len(last)] == last
           if error and partOf:
             for i, d in enumerate(lastCorrect):
               darts[i] = d
-          files = sorted(glob(f'{folder}/{id}-*'), key=len)
-          imgs = [cv2.imread(file) for file in files]
+          files = sorted(glob(f'{folder}/{id}-*'))
+          imgs = [readImage(file, transforms) for i, file in enumerate(files)]
           img = None
           if len(files) > 0 and all([i is not None for i in imgs]):
             h_min = min(im.shape[0] for im in imgs)
             if len(imgs) < 3:
-              #imgs = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=cv2.INTER_CUBIC) for im in imgs]
-              #img = cv2.hconcat(imgs)
               img = concat_tile_resize([imgs[:2]])
             else:
               img = concat_tile_resize([imgs[:2], imgs[2:]])

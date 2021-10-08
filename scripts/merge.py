@@ -4,8 +4,9 @@ from glob import glob
 from PIL import Image
 import random
 
-inPath = '/media/kevin/Daten/Pictures/Dart/*' #f'/home/kevin/Pictures/*'
-outPath = f'/home/kevin/deep-learning/data/train/webcam'
+inPath = '/media/kevin/Daten/Pictures/Dart/*' 
+#inPath = '/home/kevin/Projekte/DartNet/finder/img/*'
+outPath = f'/home/kevin/deep-learning/data/train/esp32'
 
 HEIGHT = 480
 

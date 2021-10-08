@@ -16,12 +16,13 @@ import random
 
 HEIGHT = 448
 WIDTH = 800
+OFFSET = 37
 
-path = "/home/kevin/deep-learning/data_old/boards/upper/"
+path = "/home/kevin/Desktop"
 
 files = [
-  glob(f"{path}/0/**/*.jpg"),
-  glob(f"{path}/1/**/*.jpg")
+  glob(f"{path}/0-*.png"),
+  glob(f"{path}/1-*.png")
 ]
 m0 = min(len(files[0]), len(files[1]))
 m1 = max(len(files[0]), len(files[1]))
@@ -35,7 +36,7 @@ for i in range(0, m1):
   result = Image.new('RGB', (2 * WIDTH, HEIGHT))
   result.paste(images[0], (int((WIDTH - images[0].width) / 2), 0))
   result.paste(images[1], (int(WIDTH + (WIDTH - images[1].width) / 2), 0))
-  filename = f'/home/kevin/deep-learning/data/train/empty/empty#empty#empty_{i}.jpg'
+  filename = f'/home/kevin/Projekte/DartNet/models/data/train/empty/empty#empty#empty_{i + OFFSET}.jpg'
   result.save(filename)
   print(filename)
 

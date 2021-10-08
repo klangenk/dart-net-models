@@ -50,7 +50,7 @@ files = glob(args.imagePath)
 
 refPt = [(1432, 19), (3377, 1435), (1964, 3379), (20, 1964)]
 
-ref = cv2.imread('../../data_old/ref3.jpg')
+ref = cv2.imread('/home/kevin/deep-learning/data_old/ref3.jpg')
 
 
 for (x, y) in refPt:

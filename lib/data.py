@@ -7,7 +7,7 @@ class ImageTuple(fastuple):
     def create(cls, fn):
         image = PILImage.create(fn)
         t = image2tensor(image)
-        number_of_imgs = int(t.shape[2] / (t.shape[1] * 1.2))
+        number_of_imgs = int(t.shape[2] / (t.shape[1] * 1.0))
         s = torch.split(t, t.shape[2] // number_of_imgs, 2)
         images = [PILImage.create(x.permute(1,2,0)) for x in s]
         #categories = TensorMultiCategory(one_hot([vocab.o2i[x] for x in label_field(fn)], 81).float())
@@ -48,9 +48,7 @@ def Splitter(train_name='train', valid_name='valid', exclude = []):
         return _idxs(o, train_name, exclude),_idxs(o, valid_name, exclude)
     return _inner
 
-
-
-categories = ['0-1','0-10','0-11','0-12','0-13','0-14','0-15','0-16','0-17','0-18','0-19','0-2','0-20','0-3','0-4','0-5','0-6','0-7','0-8','0-9','0-x1','0-x2','0-x3','0-z0','0-z25-1','0-z25-2','0-zempty','1-1','1-10','1-11','1-12','1-13','1-14','1-15','1-16','1-17','1-18','1-19','1-2','1-20','1-3','1-4','1-5','1-6','1-7','1-8','1-9','1-x1','1-x2','1-x3','1-z0','1-z25-1','1-z25-2','1-zempty','2-1','2-10','2-11','2-12','2-13','2-14','2-15','2-16','2-17','2-18','2-19','2-2','2-20','2-3','2-4','2-5','2-6','2-7','2-8','2-9','2-x1','2-x2','2-x3','2-z0','2-z25-1','2-z25-2','2-zempty']
+categories = ['0-1','0-10','0-11','0-12','0-13','0-14','0-15','0-16','0-17','0-18','0-19','0-2','0-20','0-3','0-4','0-5','0-6','0-7','0-8','0-9','0-x1','0-x2','0-x3','0-z25-1','0-z25-2','0-z0','0-zempty','1-1','1-10','1-11','1-12','1-13','1-14','1-15','1-16','1-17','1-18','1-19','1-2','1-20','1-3','1-4','1-5','1-6','1-7','1-8','1-9','1-x1','1-x2','1-x3','1-z25-1','1-z25-2','1-z0','1-zempty','2-1','2-10','2-11','2-12','2-13','2-14','2-15','2-16','2-17','2-18','2-19','2-2','2-20','2-3','2-4','2-5','2-6','2-7','2-8','2-9','2-x1','2-x2','2-x3','2-z25-1','2-z25-2','2-z0','2-zempty']
 vocab = CategoryMap(categories)
 c = len(vocab)
 
@@ -62,7 +60,7 @@ def load_data(bs, size, train_name, valid_name, max_rotate=180.0, path = 'data',
         get_items=get_image_files,
         splitter=Splitter(train_name=train_name, valid_name=valid_name, exclude=exclude),
         item_tfms=Resize(size),
-        get_x=[lambda x:x, label_field],
+        get_x=[lambda x:x, label_field_random_empty],
         get_y=[label_field],
         batch_tfms=[*aug_transforms(
             do_flip=False,
