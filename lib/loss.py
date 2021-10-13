@@ -28,10 +28,14 @@ class MyLoss(BaseLoss):
         targ_slice = targ.view(n * DARTS, -1)[:, :20].argmax(dim=-1)
         targ_ring = targ.view(n * DARTS, -1)[:, 20:27].argmax(dim=-1)
         mask = targ_ring < 3
+        mask_empty = targ_ring == 6
         return super().__call__(
             pred.view(n * DARTS, -1)[mask, :20],
             targ_slice[mask]
         ) + super().__call__(
             pred.view(n * DARTS, -1)[:, 20:27],
             targ_ring
+        ) + super().__call__(
+            pred.view(n * DARTS, -1)[mask_empty, 20:27],
+            targ_slice[mask_empty]
         )
