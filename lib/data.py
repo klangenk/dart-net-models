@@ -69,6 +69,6 @@ def load_data(bs, size, train_name, valid_name, max_rotate=180.0, path = 'data',
             pad_mode='zeros'
         ),Normalize.from_stats(*imagenet_stats)]
     )
-    return block.dataloaders(path, bs=bs)
+    return block.dataloaders(path, bs=bs, shuffle=True)
 
     
