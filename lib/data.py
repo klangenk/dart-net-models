@@ -22,10 +22,11 @@ class ImageTuple(fastuple):
         if t1.shape != t2.shape: return ctx
         line = t1.new_zeros(t1.shape[0], t1.shape[1], 10)
         #r = image2tensor(ref.resize((t1.shape[1], t1.shape[1])))
+        #TODO: rotation auf Bilder anwenden
         return show_image(torch.cat([t1,line,t2], dim=2), ctx=ctx, **kwargs)
         #return show_image(torch.cat([r,line, t1,line,t2], dim=2), ctx=ctx, **kwargs)
 
-def ImageTupleBlock(): return TransformBlock(type_tfms=ImageTuple.create, batch_tfms=IntToFloatTensor)
+def ImageTupleBlock(rotation): return TransformBlock(type_tfms=ImageTuple.create, batch_tfms=IntToFloatTensor,dls_kwargs = [rotation])
 
 def _parent_idxs(items, name):
     print(items)
@@ -54,21 +55,27 @@ c = len(vocab)
 
 def load_data(bs, size, train_name, valid_name, max_rotate=180.0, path = 'data', exclude = []):
     path = Path(path)
-    block = DataBlock(
-        blocks=(ImageTupleBlock, MultiCategoryBlock(vocab=categories),MultiCategoryBlock(vocab=categories)),
-        n_inp=2,
-        get_items=get_image_files,
-        splitter=Splitter(train_name=train_name, valid_name=valid_name, exclude=exclude),
-        item_tfms=Resize(size),
-        get_x=[lambda x:x, label_field_random_empty],
-        get_y=[label_field],
-        batch_tfms=[*aug_transforms(
-            do_flip=False,
-            max_rotate=max_rotate, 
-            max_lighting=0.5,
-            pad_mode='zeros'
-        ),Normalize.from_stats(*imagenet_stats)]
-    )
-    return block.dataloaders(path, bs=bs, shuffle=True)
+    dataloader = null
+    for(rotation in range(0,10)):
+        block = DataBlock(
+            blocks=(ImageTupleBlock(rotation=rotation), MultiCategoryBlock(vocab=categories),MultiCategoryBlock(vocab=categories)),
+            n_inp=2,
+            get_items=get_image_files,
+            splitter=Splitter(train_name=train_name, valid_name=valid_name, exclude=exclude),
+            item_tfms=Resize(size),
+            get_x=[lambda x:x, label_field_random_empty], #Marvin: Was ist label_field_random_empty???
+            get_y=[label_field], #TODO: rotation auf label_field anwenden
+            batch_tfms=[*aug_transforms(
+                do_flip=False,
+                max_rotate=max_rotate, 
+                max_lighting=0.5,
+                pad_mode='zeros'
+            ),Normalize.from_stats(*imagenet_stats)]
+        )
+        if(dataloader ==  null):
+            dataloader = block.dataloaders(path, bs=bs, shuffle=True)
+        else:
+            dataloader = DataLoaders(dataloader,block.dataloaders(path, bs=bs, shuffle=True))
+    return dataloader
 
     
