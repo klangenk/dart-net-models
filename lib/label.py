@@ -5,6 +5,7 @@ import random
 pat = re.compile('.*/([^_]+)_.+.jpg$')
 
 categories_simple = ['1','10','11','12','13','14','15','16','17','18','19','2','20','3','4','5','6','7','8','9','x1','x2','x3','25-1','25-2','0','empty']
+field_rotation ['20','1','18','4','13','6','10','15','2','17','3','19','7','16','8','11','14','9','12','5']
 
 def _label_pos(s):
     if s is None: return torch.tensor([-1., -1, -1, -1, -1, -1])
@@ -31,12 +32,15 @@ def _label_fields(c):
 
 
 
-def label_field(fname):
+def label_field(fname,rotation):
     match = pat.match(str(fname.as_posix()))
     if match is None:
         return None
     c = match[1].split('$')[0]
-    return _label_fields(c)
+    field = _label_fiedls(c) #gibt _label_fields die Zahl des Feldes zurück?
+    idx_before_rotation = field_rotation.index(field)
+    idx_after_rotation = (idx_before_rotation + 2 * rotation) % 20
+    return label_rotation[idx_after_rotation]
 
 def random_labels():
     labels = []
