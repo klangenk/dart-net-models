@@ -63,7 +63,7 @@ def load_data(bs, size, train_name, valid_name, max_rotate=180.0, path = 'data',
             get_items=get_image_files,
             splitter=Splitter(train_name=train_name, valid_name=valid_name, exclude=exclude),
             item_tfms=Resize(size),
-            get_x=[lambda x:x, label_field_random_empty], #Marvin: Was ist label_field_random_empty???
+            get_x=[lambda x:x, label_field_random_empty], #Marvin: Was hat label_field_random_empty für einen Sinn?
             get_y=[label_field], #TODO: rotation auf label_field anwenden
             batch_tfms=[*aug_transforms(
                 do_flip=False,
