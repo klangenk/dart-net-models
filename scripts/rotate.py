@@ -31,6 +31,7 @@ def get_matrix(image, angle, tx = 0, ty = 0):
   rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
   return rot_mat + translation_matrix
 
+
 folders = sorted([f for f in glob(f'{args.imagePath}/*') if os.path.isdir(f)
   and os.path.exists(f"{f}/darts.csv")
   and not os.path.exists(f"{f}/M-0.txt")
